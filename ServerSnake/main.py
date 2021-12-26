@@ -15,7 +15,6 @@ class CWidget(QWidget):
         super().__init__()
 
         self.s = server.ServerSocket(self)
-
         self.initUI()
 
     def initUI(self):
@@ -57,8 +56,28 @@ class CWidget(QWidget):
         self.guest.setColumnCount(3)
         self.guest.setHorizontalHeaderItem(0, QTableWidgetItem('ip'))
         self.guest.setHorizontalHeaderItem(1, QTableWidgetItem('port'))
+        self.guest.setHorizontalHeaderItem(2, QTableWidgetItem('name'))
 
         box.addWidget(self.guest)
+
+        gb.setLayout(box)
+
+        gb = QGroupBox('순위표')
+        infobox.addWidget(gb)
+
+        box = QVBoxLayout()
+
+        label = QLabel('현재 순위')
+        box.addWidget(label)
+
+        self.playerrecord = QTableWidget()
+        self.playerrecord.setColumnCount(3)
+        self.playerrecord.setHorizontalHeaderItem(0, QTableWidgetItem('등수'))
+        self.playerrecord.setHorizontalHeaderItem(1, QTableWidgetItem('이름'))
+        self.playerrecord.setHorizontalHeaderItem(2, QTableWidgetItem('점수'))
+
+        box.addWidget(self.playerrecord)
+
         gb.setLayout(box)
 
         # 채팅창 부분        
@@ -118,7 +137,6 @@ class CWidget(QWidget):
             self.guest.setRowCount(row + 1)
             self.guest.setItem(row, 0, QTableWidgetItem(addr[0]))
             self.guest.setItem(row, 1, QTableWidgetItem(str(addr[1])))
-
         else:
             for r in range(row):
                 ip = self.guest.item(r, 0).text()  # ip
@@ -131,11 +149,21 @@ class CWidget(QWidget):
         self.msg.addItem(QListWidgetItem(msg))
         self.msg.setCurrentRow(self.msg.count() - 1)
 
+    def updateRecord(self, record_):
+        row = 0
+        for i in record_:
+            self.playerrecord.setItem(row, 0, QTableWidgetItem(str(row+1)))
+            self.playerrecord.setItem(row, 1, QTableWidgetItem(str(record_[0])))
+            self.playerrecord.setItem(row, 2, QTableWidgetItem(str(record_[1])))
+            row += 1
+
+
+
     def sendMsg(self):
         if not self.s.bListen:
             self.sendmsg.clear()
             return
-        sendmsg = "System : " + self.sendmsg.text()
+        sendmsg = "N0System : " + self.sendmsg.text()
         self.updateMsg(sendmsg)
         print(sendmsg)
         self.s.send(sendmsg)

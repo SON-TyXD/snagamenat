@@ -9,6 +9,7 @@ QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
 
 defalutport = 9918
 defalutname = "Player"
+
 class MainWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -22,7 +23,6 @@ class MainWidget(QWidget):
 
     def initUI(self):
         self.setWindowTitle('스네이크 게임 클라이언트')
-
         ipbox = QHBoxLayout()
 
         gb = QGroupBox('서버 입력')
@@ -115,22 +115,25 @@ class MainWidget(QWidget):
             port = self.port.text()
             if self.c.connectServer(ip, int(port)):
                 self.btn.setText(self.name.text() + ' 접속 종료')
-                playermsg = "System : " + self.name.text() + "님이 입장하셨습니다."
+                self.c.namesave(self.name.text())
+                playermsg = "N0System : " + self.name.text() + "님이 입장하셨습니다."
                 self.c.send(playermsg)
             else:
+                playermsg = "N0System : " + self.name.text() + "님이 퇴장하셨습니다."
+                self.c.send(playermsg)
                 self.c.stop()
                 self.sendmsg.clear()
                 self.recvmsg.clear()
                 self.btn.setText('접속')
-                playermsg = "System : " + self.name.text() + "님이 퇴장하셨습니다."
-                self.c.send(playermsg)
+
         else:
+            playermsg = "N0System : " + self.name.text() + "님이 퇴장하셨습니다."
+            self.c.send(playermsg)
             self.c.stop()
             self.sendmsg.clear()
             self.recvmsg.clear()
             self.btn.setText('접속')
-            playermsg = "System : " + self.name.text() + "님이 퇴장하셨습니다."
-            self.c.send(playermsg)
+
 
     def updateMsg(self, msg):
         self.recvmsg.addItem(QListWidgetItem(msg))
@@ -139,13 +142,18 @@ class MainWidget(QWidget):
         self.btn.setText('접속')
 
     def sendMsg(self):
-        sendmsg = self.name.text() + " : " + self.sendmsg.toPlainText()
+        sendmsg = "N0" + self.name.text() + " : " + self.sendmsg.toPlainText()
         self.c.send(sendmsg)
         self.sendmsg.clear()
 
+    def sendName(self):
+        sendName = "N1" + self.name.text()
+        self.c.send(sendName)
+
+
+
     def clearMsg(self):
         self.recvmsg.clear()
-
 
     def closeEvent(self, e):
         self.c.stop()
@@ -158,7 +166,7 @@ class SnakeWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-
+        self.c = client.ClientSocket(self)
         self.initUI()
 
     def __del__(self):
@@ -189,12 +197,17 @@ class SnakeWidget(QWidget):
                                          , QMessageBox.Yes | QMessageBox.No)
 
         if result == QMessageBox.Yes:
+            self.sendRecord(self.map.foodcnt)
             self.map.reStart()
         else:
+            self.sendRecord(self.map.foodcnt)
             self.map.reStart()
             widget.setCurrentIndex(widget.currentIndex()-1)
 
-
+    def sendRecord(self, score):
+        playername = self.c.retrunname()
+        sendRecord = "N2"+"{0:03d}".format(score) + playername
+        self.c.send(sendRecord)
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 

@@ -6,9 +6,15 @@ from PyQt5.QtCore import Qt, pyqtSignal, QObject
 class Signal(QObject):
     recv_signal = pyqtSignal(str)
     disconn_signal = pyqtSignal()
+class SingletonType(type):
+    def __call__(cls, *args, **kwargs):
+        try:
+            return cls.__instance
+        except AttributeError:
+            cls.__instance = super().__call__(*args, **kwargs)
+            return cls.__instance
 
-
-class ClientSocket:
+class ClientSocket(metaclass=SingletonType):
 
     def __init__(self, parent):
         self.parent = parent
@@ -57,8 +63,10 @@ class ClientSocket:
             else:
                 msg = str(recv, encoding='utf-8')
                 if msg:
-                    self.recv.recv_signal.emit(msg)
-                    print('[RECV]:', msg)
+                    key_code = msg[0:2]
+                    if key_code == "N0":
+                        self.recv.recv_signal.emit(msg[2:])
+                        print('[RECV]:', msg[2:])
 
         self.stop()
 
@@ -70,3 +78,10 @@ class ClientSocket:
             self.client.send(msg.encode())
         except Exception as e:
             print('Send() Error : ', e)
+
+
+    def namesave(self, name):
+        self.name = name
+    def retrunname(self):
+        return self.name
+

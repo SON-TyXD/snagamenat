@@ -1,12 +1,18 @@
 from threading import Thread
 from socket import *
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
-import re
+import sqlite3
+
+database = sqlite3.connect("test.db", check_same_thread=False)
+db = database.cursor()
+db.execute("CREATE TABLE IF NOT EXISTS table1(Record int, ID text)")
+
 
 class ServerSocket(QObject):
     update_signal = pyqtSignal(tuple, bool)
     recv_signal = pyqtSignal(str)
-    separators = "[TL]"
+    update_record = pyqtSignal(list)
+
     def __init__(self, parent):
         super().__init__()
         self.parent = parent
@@ -14,9 +20,9 @@ class ServerSocket(QObject):
         self.clients = []
         self.ip = []
         self.threads = []
-
         self.update_signal.connect(self.parent.updateClient)
         self.recv_signal.connect(self.parent.updateMsg)
+        self.update_record.connect(self.parent.updateRecord)
 
     def __del__(self):
         self.stop()
@@ -34,7 +40,9 @@ class ServerSocket(QObject):
             self.t = Thread(target=self.listen, args=(self.server,))
             self.t.start()
             print('Server Listening...')
-
+            db.execute("SELECT * FROM table1 ORDER BY record DESC")
+            self.recordlist = db.fetchall()
+            self.update_record.emit(self.recordlist)
         return True
 
     def stop(self):
@@ -72,11 +80,27 @@ class ServerSocket(QObject):
             else:
                 msg = str(recv, encoding='utf-8')
                 if msg:
-                    self.send(msg)
-                    self.recv_signal.emit(msg)
-                    print('[RECV]:', addr, msg)
+                    key_code = msg[0:2]
+                    if key_code == "N0":
+                        self.send(msg)
+                        self.recv_signal.emit(msg[2:])
+                        print('[RECV]:', addr, msg)
+                    elif key_code == "N1":
+                        print('[RECV]:', addr, msg)
+                    elif key_code == "N2":
+                        num = int(msg[2:5])
+                        name = msg[5:]
+                        print('[RECV]:', name, msg)
+                        self.score(num, name)
 
         self.removeClient(addr, client)
+    def score(self, num, name):
+        sql = (name, num)
+        db.execute("INSERT INTO table1(ID, record) VALUES (?, ?)", sql)
+        database.commit()
+        db.execute("SELECT * FROM table1 ORDER BY record DESC")
+        self.recordlist = db.fetchall()
+        self.update_record.emit(self.recordlist)
 
     def send(self, msg):
         try:
